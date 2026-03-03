@@ -13,6 +13,7 @@ import hashlib
 HEADERS = {'authorization': 'token '+ os.environ['ACCESS_TOKEN']}
 USER_NAME = os.environ['USER_NAME']
 QUERY_COUNT = {'user_getter': 0, 'follower_getter': 0, 'graph_repos_stars': 0, 'recursive_loc': 0, 'graph_commits': 0, 'loc_query': 0}
+LOC_EXCLUDE = {'Lavanic/BadgerPlus'} # Repos to exclude from LOC counting
 
 
 def daily_readme(birthday):
@@ -254,8 +255,11 @@ def cache_builder(edges, comment_size, force_cache, loc_add=0, loc_del=0):
     with open(filename, 'w') as f:
         f.writelines(cache_comment)
         f.writelines(data)
+    exclude_hashes = {hashlib.sha256(name.encode('utf-8')).hexdigest() for name in LOC_EXCLUDE}
     for line in data:
         loc = line.split()
+        if loc[0] in exclude_hashes:
+            continue
         loc_add += int(loc[3])
         loc_del += int(loc[4])
     return [loc_add, loc_del, loc_add - loc_del, cached]

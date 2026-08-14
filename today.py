@@ -295,9 +295,15 @@ def force_close_file(data, cache_comment):
 def stars_counter(data):
     """
     Count total stars in repositories owned by me
+    GraphQL returns a null node for any repo it can't resolve (deleted, transferred,
+    or a partial error), so skip those instead of crashing on the whole run
     """
     total_stars = 0
-    for node in data: total_stars += node['node']['stargazers']['totalCount']
+    for node in data:
+        if node is None or node['node'] is None:
+            print('   skipped an unresolvable repo while counting stars')
+            continue
+        total_stars += node['node']['stargazers']['totalCount']
     return total_stars
 
 

@@ -44,9 +44,16 @@ def format_plural(unit):
 def simple_request(func_name, query, variables):
     """
     Returns a request, or raises an Exception if the response does not succeed.
+    GraphQL reports field-level failures as an 'errors' array alongside a 200 OK, so
+    print those too - otherwise they only surface much later as a TypeError on None
     """
     request = requests.post('https://api.github.com/graphql', json={'query': query, 'variables':variables}, headers=HEADERS)
     if request.status_code == 200:
+        errors = request.json().get('errors')
+        if errors:
+            print(f'   {func_name} returned {len(errors)} GraphQL error(s):')
+            for error in errors:
+                print(f"      [{error.get('type', 'UNKNOWN')}] {error.get('message', error)}")
         return request
     raise Exception(func_name, ' has failed with a', request.status_code, request.text, QUERY_COUNT)
 
@@ -85,9 +92,7 @@ def graph_repos_stars(count_type, owner_affiliation, cursor=None, add_loc=0, del
                     node {
                         ... on Repository {
                             nameWithOwner
-                            stargazers {
-                                totalCount
-                            }
+                            stargazerCount
                         }
                     }
                 }
@@ -295,15 +300,15 @@ def force_close_file(data, cache_comment):
 def stars_counter(data):
     """
     Count total stars in repositories owned by me
-    GraphQL returns a null node for any repo it can't resolve (deleted, transferred,
-    or a partial error), so skip those instead of crashing on the whole run
+    A null node means GraphQL could not resolve that repo, which would silently
+    undercount, so refuse to publish rather than overwrite a good number with a bad one
     """
+    unresolved = sum(1 for node in data if node is None or node['node'] is None)
+    if unresolved:
+        raise Exception(f'stars_counter(): {unresolved} of {len(data)} repositories failed to '
+                        'resolve, refusing to publish an undercount. See the GraphQL errors above.')
     total_stars = 0
-    for node in data:
-        if node is None or node['node'] is None:
-            print('   skipped an unresolvable repo while counting stars')
-            continue
-        total_stars += node['node']['stargazers']['totalCount']
+    for node in data: total_stars += node['node']['stargazerCount']
     return total_stars
 
 

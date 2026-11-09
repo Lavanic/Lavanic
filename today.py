@@ -317,13 +317,14 @@ def stars_counter(data):
 
 def art_theme(date):
     """
-    Picks which face to draw for the day the build runs. Halloween and New Year get a day
-    either side so they are up on the day itself in every timezone, Christmas runs the 23rd to the 25th
+    Picks which face to draw for the day the build runs. Each holiday gets a run-up of
+    several days so the swap is easy to catch
     """
-    if (date.month, date.day) in {(10, 30), (10, 31), (11, 1)}: return 'halloween'
-    if (date.month, date.day) in {(12, 23), (12, 24), (12, 25)}: return 'christmas'
-    if (date.month, date.day) in {(12, 31), (1, 1), (1, 2)}: return 'newyear'
-    if (date.month, date.day) == (BIRTHDAY.month, BIRTHDAY.day): return 'birthday'
+    month_day = (date.month, date.day)
+    if (10, 26) <= month_day <= (11, 1): return 'halloween'
+    if (12, 20) <= month_day <= (12, 25): return 'christmas'
+    if month_day >= (12, 28) or month_day <= (1, 2): return 'newyear'
+    if month_day == (BIRTHDAY.month, BIRTHDAY.day): return 'birthday'
     return 'default'
 
 

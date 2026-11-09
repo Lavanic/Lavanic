@@ -13,6 +13,10 @@ size-adjust: 109%;
 .addColor { fill: #2ea043; }   /* git-ish green */
 .delColor { fill: #f85149; }   /* git-ish red */
 .cc { fill: #6e7681; }         /* muted gray */
+.red { fill: #f85149; }        /* colored art cells */
+.blue { fill: #2596be; }
+.green { fill: #2ea043; }
+.yellow { fill: #d4a72c; }
 .fg { fill: #c9d1d9; }         /* main text */
 text, tspan { white-space: pre; }
 </style>

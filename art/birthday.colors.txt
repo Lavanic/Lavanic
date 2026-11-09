@@ -1,0 +1,27 @@
+ g     r rrr yyy     rry     yr ryr
+g yy rrr r y             y   y  yyrr
+r yb r  yyy                r      rr
+  rbb yy                      bbrr  yy
+  rbyr                         b    rr
+ rr yy                          b    r
+ yyy                               grr
+ry y                                rr
+   y                             bbrrr
+                              b  bbrrr
+y  bb                         b   y g
+y rr                          b     gr
+y r                                 yr
+                                y   yy
+gyyy                                r
+byyr                              yy b
+ rr                             b yyy
+  yy y                             yy
+  y  y                            y  b
+yy                               yg
+ b                              b  bbb
+ b  y b                        bb    b
+yy yyb
+r                                  bbr
+                                   g r
+                                   g
+

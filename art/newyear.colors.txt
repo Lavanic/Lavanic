@@ -1,0 +1,27 @@
+brr                              br
+brb                             rrb
+rbb                             bb rb
+r                                   b
+                                    bb
+
+
+
+
+
+   yyyyyyyyyyyyyyyyyyyyyyyyyyyy
+        yyyyyy        yyyyyy
+
+
+
+rbb
+brrr                yyy
+bbbbb                ybb
+ brr                  bbby
+rrbb                   ybbb
+rr b                     bbbb
+rr                        bbbb  yyy
+                           ybyyyyyyy
+                             yyyyyyy
+                              yyyy
+
+

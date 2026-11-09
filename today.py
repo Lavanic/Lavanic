@@ -5,6 +5,7 @@ import os
 from lxml import etree
 import time
 import hashlib
+import itertools
 
 # Fine-grained personal access token with All Repositories access:
 # Account permissions: read:Followers, read:Starring, read:Watching
@@ -14,6 +15,8 @@ HEADERS = {'authorization': 'token '+ os.environ['ACCESS_TOKEN']}
 USER_NAME = os.environ['USER_NAME']
 QUERY_COUNT = {'user_getter': 0, 'follower_getter': 0, 'graph_repos_stars': 0, 'recursive_loc': 0, 'graph_commits': 0, 'loc_query': 0}
 LOC_EXCLUDE = {'Lavanic/BadgerPlus'} # Repos to exclude from LOC counting
+BIRTHDAY = datetime.datetime(2005, 3, 3)
+ART_COLORS = {'r': 'red', 'y': 'yellow', 'b': 'blue', 'g': 'green'} # letters in art/<theme>.colors.txt -> fill class in the svg stylesheet
 
 
 def daily_readme(birthday):
@@ -312,12 +315,54 @@ def stars_counter(data):
     return total_stars
 
 
-def svg_overwrite(filename, age_data, commit_data, star_data, repo_data, contrib_data, follower_data, loc_data):
+def art_theme(date):
     """
-    Parse SVG files and update elements with my age, commits, stars, repositories, and lines written
+    Picks which face to draw for the day the build runs. Halloween and New Year get a day
+    either side so they are up on the day itself in every timezone, Christmas runs the 23rd to the 25th
+    """
+    if (date.month, date.day) in {(10, 30), (10, 31), (11, 1)}: return 'halloween'
+    if (date.month, date.day) in {(12, 23), (12, 24), (12, 25)}: return 'christmas'
+    if (date.month, date.day) in {(12, 31), (1, 1), (1, 2)}: return 'newyear'
+    if (date.month, date.day) == (BIRTHDAY.month, BIRTHDAY.day): return 'birthday'
+    return 'default'
+
+
+def ascii_overwrite(root, theme):
+    """
+    Replaces the ascii art with the rows of art/<theme>.txt, one row per existing tspan.
+    If art/<theme>.colors.txt exists, each cell whose letter there is in ART_COLORS gets
+    its own tspan so the stylesheet can color it, everything else inherits the text color
+    """
+    with open(f'art/{theme}.txt') as f:
+        rows = f.read().splitlines()
+    try:
+        with open(f'art/{theme}.colors.txt') as f:
+            masks = f.read().splitlines()
+    except FileNotFoundError:
+        masks = []
+    masks += [''] * (len(rows) - len(masks))
+    tspans = list(root.find(".//*[@class='ascii']"))
+    if len(rows) != len(tspans):
+        raise Exception(f'art/{theme}.txt has {len(rows)} rows, the SVG has room for {len(tspans)}')
+    for tspan, row, mask in zip(tspans, rows, masks):
+        for child in list(tspan): tspan.remove(child)
+        tspan.text = ''
+        for color, run in itertools.groupby(zip(row, mask.ljust(len(row))), lambda cell: ART_COLORS.get(cell[1])):
+            run = ''.join(char for char, _ in run)
+            if color is None:
+                if len(tspan): tspan[-1].tail = run
+                else: tspan.text = run
+            else:
+                etree.SubElement(tspan, '{http://www.w3.org/2000/svg}tspan', {'class': color}).text = run
+
+
+def svg_overwrite(filename, theme, age_data, commit_data, star_data, repo_data, contrib_data, follower_data, loc_data):
+    """
+    Parse SVG files and update the ascii art for the day and the elements with my age, commits, stars, repositories, and lines written
     """
     tree = etree.parse(filename)
     root = tree.getroot()
+    ascii_overwrite(root, theme)
     find_and_replace(root, 'age_data', age_data)
     justify_format(root, 'commit_data', commit_data, 22)
     justify_format(root, 'star_data', star_data, 14)
@@ -439,7 +484,7 @@ if __name__ == '__main__':
     user_data, user_time = perf_counter(user_getter, USER_NAME)
     OWNER_ID, acc_date = user_data
     formatter('account data', user_time)
-    age_data, age_time = perf_counter(daily_readme, datetime.datetime(2005, 3, 3))
+    age_data, age_time = perf_counter(daily_readme, BIRTHDAY)
     formatter('age calculation', age_time)
     total_loc, loc_time = perf_counter(loc_query, ['OWNER', 'COLLABORATOR', 'ORGANIZATION_MEMBER'], 7)
     formatter('LOC (cached)', loc_time) if total_loc[-1] else formatter('LOC (no cache)', loc_time)
@@ -451,8 +496,9 @@ if __name__ == '__main__':
 
     for index in range(len(total_loc)-1): total_loc[index] = '{:,}'.format(total_loc[index]) # format added, deleted, and total LOC
 
-    svg_overwrite('dark_mode.svg', age_data, commit_data, star_data, repo_data, contrib_data, follower_data, total_loc[:-1])
-    svg_overwrite('light_mode.svg', age_data, commit_data, star_data, repo_data, contrib_data, follower_data, total_loc[:-1])
+    theme = os.environ.get('ART_THEME') or art_theme(datetime.date.today())
+    svg_overwrite('dark_mode.svg', theme, age_data, commit_data, star_data, repo_data, contrib_data, follower_data, total_loc[:-1])
+    svg_overwrite('light_mode.svg', theme, age_data, commit_data, star_data, repo_data, contrib_data, follower_data, total_loc[:-1])
 
     # move cursor to override 'Calculation times:' with 'Total function time:' and the total function time, then move cursor back
     print('\033[F\033[F\033[F\033[F\033[F\033[F\033[F\033[F',

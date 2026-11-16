@@ -44,13 +44,23 @@ def format_plural(unit):
     return 's' if unit != 1 else ''
 
 
+def graphql_post(query, variables, attempts=4):
+    for attempt in range(attempts):
+        request = requests.post('https://api.github.com/graphql', json={'query': query, 'variables':variables}, headers=HEADERS)
+        if request.status_code not in (502, 503, 504) or attempt == attempts - 1:
+            return request
+        delay = 5 * 2 ** attempt
+        print(f'   GitHub returned {request.status_code}, retrying in {delay}s')
+        time.sleep(delay)
+
+
 def simple_request(func_name, query, variables):
     """
     Returns a request, or raises an Exception if the response does not succeed.
     GraphQL reports field-level failures as an 'errors' array alongside a 200 OK, so
     print those too - otherwise they only surface much later as a TypeError on None
     """
-    request = requests.post('https://api.github.com/graphql', json={'query': query, 'variables':variables}, headers=HEADERS)
+    request = graphql_post(query, variables)
     if request.status_code == 200:
         errors = request.json().get('errors')
         if errors:
@@ -153,7 +163,7 @@ def recursive_loc(owner, repo_name, data, cache_comment, addition_total=0, delet
         }
     }'''
     variables = {'repo_name': repo_name, 'owner': owner, 'cursor': cursor}
-    request = requests.post('https://api.github.com/graphql', json={'query': query, 'variables':variables}, headers=HEADERS) # I cannot use simple_request(), because I want to save the file before raising Exception
+    request = graphql_post(query, variables) # I cannot use simple_request(), because I want to save the file before raising Exception
     if request.status_code == 200:
         if request.json()['data']['repository']['defaultBranchRef'] != None: # Only count commits if repo isn't empty
             return loc_counter_one_repo(owner, repo_name, data, cache_comment, request.json()['data']['repository']['defaultBranchRef']['target']['history'], addition_total, deletion_total, my_commits)
